@@ -76,10 +76,9 @@ export const GridView = () => {
         title="DataTable"
         columns={columns}
         data={data}
-        parentChildData={(row, rows) => rows.find((a) => a.id === row.parentId)}
+        //parentChildData={(row, rows) => rows.find((a) => a.id === row.parentId)}
         options={{
           selection: true,
-          filtering: true,
         }}
         onRowClick={(row, rows) => handleClick(row, rows)}
         components={{

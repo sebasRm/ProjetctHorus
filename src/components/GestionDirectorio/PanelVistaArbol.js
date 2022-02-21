@@ -1,5 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ContextMenu, MenuItem, ContextMenuTrigger } from "react-contextmenu";
+import { useDispatch, useSelector } from "react-redux";
 import { Treebeard } from "react-treebeard";
 import {
   Modal,
@@ -10,6 +11,7 @@ import {
   ModalFooter,
   Button,
 } from "reactstrap";
+import { eventAddNew, setActive } from "../../actions/events";
 import { useForm } from "../../hooks/useForm";
 
 const directory = {
@@ -25,7 +27,7 @@ const directory = {
       children: [{ name: "childLoadingf1" }, { name: "childLoadingf2" }],
     },
     {
-      name: "parent",
+      name: "parent2",
       children: [
         {
           name: "nested parent",
@@ -37,17 +39,31 @@ const directory = {
 };
 
 export const PanelVistaArbol = () => {
+  const dispatch = useDispatch();
+  const { activeFile, files } = useSelector((state) => state.events);
+
   const [data, setData] = useState(directory);
   const [cursor, setCursor] = useState(false);
   const [abierto, setAbierto] = useState(false);
-  const [agregarCarpeta, setAgregarCarpeta] = useState("");
-  const [estado, setEstado] = useState("");
 
-  const [crearCarpetaValues, handleCrearCarpeta] = useForm({
-    carpeta: "",
-  });
+  const initiEvent = {
+    name: "",
+  };
 
-  const { carpeta } = crearCarpetaValues;
+  const [formValues, setformValues] = useState(initiEvent);
+
+  const { name } = formValues;
+
+  useEffect(() => {
+    setformValues(initiEvent);
+  }, [setformValues]);
+
+  const handleInputChange = ({ target }) => {
+    setformValues({
+      ...formValues,
+      [target.name]: target.value,
+    });
+  };
 
   const onToggle = (node, toggled) => {
     setCursor(node);
@@ -60,8 +76,6 @@ export const PanelVistaArbol = () => {
     setCursor(node);
   };
 
-  var valorCopiar;
-
   var copiaObjeto;
   const obj = {};
 
@@ -73,7 +87,6 @@ export const PanelVistaArbol = () => {
       children: nojoHijos,
     };
 
-    setEstado(nameItem);
     //console.log(estado)
 
     findObject(data, "name", "loading parent", copiaObjeto);
@@ -82,28 +95,21 @@ export const PanelVistaArbol = () => {
     //.__reactEventHandlers$f6wpoyzd59
   }
 
-  const crearCarpeta = (datos) => {
-    const nameItem = datos.target.innerHTML;
-    console.log(datos);
+  const handleCrear = (e, datos) => {
+    setAbierto(!abierto);
+    dispatch(setActive(datos.target.innerHTML));
   };
 
-  function handleCrear(e, datos) {
-    setAbierto(!abierto);
-    const nameItem = datos.target.innerHTML;
-    const nojoHijos = datos.foo.children;
-    copiaObjeto = {
-      name: nameItem,
-      children: nojoHijos,
-    };
-
-    crearCarpeta(datos);
-  }
+  const crearCarpeta = (datos) => {
+    dispatch(eventAddNew(formValues, activeFile));
+    setAbierto(false);
+    setformValues(initiEvent);
+  };
 
   //console.log(estado)
 
   function clickPegar(e, datos) {
     const nameItem = datos.target.innerHTML;
-
     console.log(copiaObjeto);
     findObject(data, "name", nameItem, copiaObjeto);
   }
@@ -120,6 +126,23 @@ export const PanelVistaArbol = () => {
           obj["children"] = [];
           obj["children"].push(copiaObjeto);
         }
+      }
+      Object.keys(obj).forEach(function (k) {
+        recursiveSearch(obj[k]);
+      });
+    };
+    recursiveSearch(obj);
+    console.log(data);
+  };
+
+  const crear = (obj = {}, key, value, carpeta) => {
+    //console.log(carpeta)
+    const recursiveSearch = (obj = {}) => {
+      if (!obj || typeof obj !== "object") {
+        return;
+      }
+      if (obj[key] === value) {
+        obj["children"].push({ name: carpeta });
       }
       Object.keys(obj).forEach(function (k) {
         recursiveSearch(obj[k]);
@@ -157,7 +180,7 @@ export const PanelVistaArbol = () => {
       {/* NOTICE: inside the pair, <ContextMenuTrigger> and <ContextMenu> must have the same id */}
 
       <ContextMenuTrigger id="same_unique_identifier">
-        <Treebeard className="toggle" data={data} onToggle={onToggle} />
+        <Treebeard className="toggle" data={files} onToggle={onToggle} />
       </ContextMenuTrigger>
 
       <ContextMenu id="same_unique_identifier">
@@ -188,9 +211,9 @@ export const PanelVistaArbol = () => {
         <FormGroup>
           <Label>Nombre de carpeta</Label>
           <Input
-            name="carpeta"
-            value={carpeta}
-            onChange={handleCrearCarpeta}
+            name="name"
+            value={name}
+            onChange={handleInputChange}
             className="nombreCarpeta"
             type="text"
             placeholder="Escriba nombre de la carpeta"
